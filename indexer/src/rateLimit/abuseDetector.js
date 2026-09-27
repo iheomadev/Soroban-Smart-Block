@@ -27,6 +27,7 @@ import {
   ABUSE_RATELIMITCOUNT_PREFIX,
   ABUSE_PENALTY_PREFIX,
 } from './constants.js';
+import { getClientIp } from '../admin/ipUtils.js';
 import { getRedisClient } from './tokenBucket.js';
 import { safeFetch } from '../safeHttp.js';
 
@@ -66,18 +67,6 @@ const PAGINATION_PENALTY_RATE = 5;
 const BREACH_THRESHOLD = 5;
 /** Rate limit breach counter TTL (seconds) — 10 min. */
 const BREACH_WINDOW = 600;
-
-// ── IP extraction ─────────────────────────────────────────────────────────────
-
-/**
- * @param {import('express').Request} req
- * @returns {string}
- */
-function extractIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) return String(forwarded).split(',')[0].trim();
-  return req.socket?.remoteAddress ?? '0.0.0.0';
-}
 
 // ── Jaccard similarity ────────────────────────────────────────────────────────
 
@@ -400,7 +389,7 @@ function notifyCloudflare(endpoint, distinctIps) {
  * @type {import('express').RequestHandler}
  */
 async function abuseDetector(req, res, next) {
-  const ip = extractIp(req);
+  const ip = getClientIp(req);
   const rateContext = req.rateContext ?? {
     clientId: 'unknown',
     tier: 'unauthenticated',

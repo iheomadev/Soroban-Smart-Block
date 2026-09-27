@@ -48,17 +48,22 @@ function ipInCidrList(ip, cidrList) {
 // ── Client IP extraction ──────────────────────────────────────────────────────
 
 /**
- * Extract the real client IP from the request, respecting common proxy headers.
+ * Return the verified client IP for a request.
+ *
+ * Express populates `req.ip` correctly when `app.set('trust proxy', N)` is
+ * configured (see TRUST_PROXY in .env.example / api.js).  When trust proxy is
+ * not set (the default), Express sets `req.ip` to the raw TCP remote address,
+ * so a spoofed X-Forwarded-For header has no effect.
+ *
+ * All four call-sites (adminAuth, abuseDetector, geoIpLimiter, auditLogger)
+ * must use this single helper so the trust-proxy contract is enforced
+ * consistently — fixes #968.
+ *
  * @param {import('express').Request} req
  * @returns {string}
  */
 function getClientIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    // x-forwarded-for can be a comma-separated list; take the first (client) IP.
-    return String(forwarded).split(',')[0].trim();
-  }
-  return req.socket?.remoteAddress ?? '0.0.0.0';
+  return req.ip ?? req.socket?.remoteAddress ?? '0.0.0.0';
 }
 
 export { ipv4ToInt, ipMatchesCidr, ipInCidrList, getClientIp };

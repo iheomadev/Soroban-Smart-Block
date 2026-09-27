@@ -353,6 +353,18 @@ export function createApi({ logDestination, dbOverride } = {}) {
   const db = dbOverride || defaultDb;
   const runningUnderTest = process.env.NODE_ENV === "test" || !!process.env.JEST_WORKER_ID;
   const app = express();
+
+  // ── Trust proxy configuration (#968) ──────────────────────────────────────
+  // TRUST_PROXY controls how Express resolves req.ip from X-Forwarded-For.
+  // Set to the number of trusted proxy hops (e.g. "1") or a trusted CIDR/IP.
+  // Defaults to false (no proxy trusted) so a direct caller cannot spoof their IP.
+  // See indexer/.env.example for full documentation.
+  const trustProxy = process.env.TRUST_PROXY;
+  if (trustProxy) {
+    // Accept numeric hop count ("1", "2") or subnet strings ("10.0.0.0/8")
+    const numeric = Number(trustProxy);
+    app.set('trust proxy', Number.isInteger(numeric) && !Number.isNaN(numeric) ? numeric : trustProxy);
+  }
   app.use(
     helmet({
       contentSecurityPolicy: {

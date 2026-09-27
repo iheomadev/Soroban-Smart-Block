@@ -28,6 +28,7 @@ import cron from 'node-cron';
 import { pool } from '../db.js';
 import { logger } from '../logger.js';
 import { fireAlert, resolveAlert, ALERT_CONDITIONS } from '../alertManager.js';
+import { getClientIp } from '../admin/ipUtils.js';
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 const FLUSH_INTERVAL_MS = 500;
@@ -149,10 +150,7 @@ function auditLoggerMiddleware(req, res, next) {
 
   res.on('finish', () => {
     try {
-      const forwarded = req.headers['x-forwarded-for'];
-      const ip = forwarded
-        ? String(forwarded).split(',')[0].trim()
-        : req.socket?.remoteAddress ?? '0.0.0.0';
+      const ip = getClientIp(req);
 
       let request_body_hash = null;
       if (req.body && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {

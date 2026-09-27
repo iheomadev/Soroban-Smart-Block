@@ -21,6 +21,7 @@ import { logger } from "../logger.js";
  */
 
 import { existsSync } from 'fs';
+import { getClientIp } from '../admin/ipUtils.js';
 
 // ── Lazy-loaded MaxMind reader ────────────────────────────────────────────────
 
@@ -100,22 +101,6 @@ function getRateMultipliers() {
   }
 }
 
-// ── IP extraction ─────────────────────────────────────────────────────────────
-
-/**
- * Extract the best-effort client IP from the request.
- *
- * @param {import('express').Request} req
- * @returns {string}
- */
-function extractClientIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    return String(forwarded).split(',')[0].trim();
-  }
-  return req.socket?.remoteAddress ?? '0.0.0.0';
-}
-
 // ── Middleware ─────────────────────────────────────────────────────────────────
 
 /**
@@ -135,7 +120,7 @@ async function geoIpRateLimiter(req, res, next) {
       return next();
     }
 
-    const ip = extractClientIp(req);
+    const ip = getClientIp(req);
     let countryCode = null;
 
     try {
@@ -190,4 +175,4 @@ async function geoIpRateLimiter(req, res, next) {
 }
 
 // Export for testing.
-export { geoIpRateLimiter, getMaxmindReader, extractClientIp, getBlockList, getRateMultipliers };
+export { geoIpRateLimiter, getMaxmindReader, getBlockList, getRateMultipliers };
